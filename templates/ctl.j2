@@ -1,0 +1,35 @@
+#!/bin/bash
+cmd=$1
+ID="{{service_id}}"
+VERSION="{{ lookup('file', 'version.txt') }}"
+
+function status {
+
+{% raw %}
+RUNNING=$( ( docker inspect --format="{{.State.Running}}" $ID 2> /dev/null || echo false ) | tr -d '\n' )
+{% endraw %}
+
+HEALTHY=$RUNNING # TODO: Fill this out for your service
+
+cat << EOF
+$ID:
+  version: $VERSION
+  running: $RUNNING
+  healthy: $HEALTHY
+EOF
+}
+
+case $cmd in
+  'start' )
+    docker start $ID > /dev/null
+  ;;
+  'stop' )
+    docker stop $ID > /dev/null
+  ;;
+  'restart' )
+    docker restart $ID > /dev/null
+  ;;
+  * )
+esac
+
+status

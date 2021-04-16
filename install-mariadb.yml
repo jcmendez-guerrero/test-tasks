@@ -1,0 +1,168 @@
+---
+- name: Install Mariadb
+  hosts: mariadb
+  order: sorted
+  become: yes
+  vars_files:
+    - artifacts.yml
+    - constants-maria.yml
+
+  handlers:
+    - name: restart mariadb
+      docker_container:
+        name: "{{inventory_hostname}}_maria_{{ node_name }}"
+        state: started
+        restart: True
+      when: new_cluster_file.stat.exists
+
+  tasks:
+
+    - name: Add pip services
+      include_role:
+        name: pip-installer
+
+    - name: "Create the mysql user group"
+      group:
+        name: mysql
+        gid: 64998
+        state: present
+
+    - name: "Create the mysql user"
+      user:
+        name: mysql
+        uid: 64998
+        group: mysql
+        state: present
+
+    - name: "Create directories"
+      file:
+        path: "{{ item }}"
+        state: "directory"
+        group: mysql
+        owner: mysql
+        recurse: yes
+      with_items:
+        - "{{ mariadb_conf_dir }}"
+        - "{{ mariadb_data_dir }}"
+        - "{{ mariadb_tmp_dir }}"
+        - "{{ innodb_dir }}"
+        - "{{ binlog_dir }}"
+        - "{{ innodblog_dir }}"
+        - "/opt/local/bin/"
+
+    - name: Apply mariadb site configuration
+      template:
+        group: mysql
+        owner: mysql
+        src: templates/mariadb/site.cnf.j2
+        dest: "{{ mariadb_conf_dir }}/site.cnf"
+      register: site
+
+    - name: Copy postinstall.sql file
+      template:
+        group: mysql
+        owner: mysql
+        src: templates/mariadb/postinstall.sql.j2
+        dest: "{{ mariadb_conf_dir }}/postinstall.sql"
+      register: postinstall
+
+    - name: Copy and apply mariadb new_cluster configuration file
+      template:
+        group: mysql
+        owner: mysql
+        src: templates/mariadb/new_cluster.cnf.j2
+        dest: "{{ mariadb_conf_dir }}/new_cluster.cnf"
+      register: new_cluster
+
+
+    - name: Apply mariadb wsrep configuration
+      template:
+        group: mysql
+        owner: mysql
+        src: templates/mariadb/wsrep.cnf.j2
+        dest: "{{ mariadb_conf_dir }}/wsrep.cnf"
+      notify: restart mariadb
+
+    - name: Check if new_cluster.cnf file exists
+      stat:
+        path: "{{ mariadb_conf_dir }}/new_cluster.cnf"
+      register: new_cluster_file
+
+    - name: Add firewall services
+      include_role:
+        name: add-firewall-services
+
+      
+    - name: Install mariadb master docker
+      docker_container:
+          name: "{{inventory_hostname}}_maria_{{ node_name }}"
+          state: started
+          log_driver: json-file
+          log_options:
+            max-size: 15m
+            max-file: "3"
+          image: "{{ artifacts.dockers.mariadb }}"
+          volumes:
+            - "{{ mariadb_conf_dir }}:/etc/mysql/mariadb.conf.d"
+            - "{{ mariadb_data_dir }}:/var/lib/mysql/datadir"
+            - "{{ mariadb_tmp_dir }}:/var/lib/mysql/tmp"
+            - "{{ innodb_dir }}:/var/lib/mysql/innodb"
+            - "{{ binlog_dir }}:/var/lib/mysql/innodb/binlog"
+            - "{{ innodblog_dir }}:/var/lib/mysql/innodblog"
+          network_mode: "{{ mariadb_network }}"
+          restart_policy: unless-stopped
+          cpu_shares: "{{ mariadb_cpu_shares }}"
+          memory: "{{ mariadb_memory_limit }}"
+          memory_swap: "{{ mariadb_memory_swap }}"
+          env:
+            MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "true"
+      when: "mariadb_new_cluster == true"
+
+    - name: Wait for new cluster to start (max 2 minutes)
+      shell: "docker run --rm {{ artifacts.dockers.mariadb }} mysql -h {{ mariadb_listen_address }} -P {{ mariadb_listen_port }} -N -e \"show status like 'wsrep_cluster_size'\" | awk '{print $2}' " 
+      register: result
+      until: result.stdout >= '1'
+      retries: 12
+      delay: 10
+      when: "galera_cluster is defined and mariadb_new_cluster == true"
+
+    - name: Install mariadb replicas docker
+      docker_container:
+          name: "{{inventory_hostname}}_maria_{{ node_name }}"
+          state: started
+          log_driver: json-file
+          log_options:
+            max-size: 15m
+            max-file: "3"
+          image: "{{ artifacts.dockers.mariadb }}"
+          volumes:
+            - "{{ mariadb_conf_dir }}:/etc/mysql/mariadb.conf.d"
+            - "{{ mariadb_data_dir }}:/var/lib/mysql/datadir"
+            - "{{ mariadb_tmp_dir }}:/var/lib/mysql/tmp"
+            - "{{ innodb_dir }}:/var/lib/mysql/innodb"
+            - "{{ binlog_dir }}:/var/lib/mysql/innodb/binlog"
+            - "{{ innodblog_dir }}:/var/lib/mysql/innodblog"
+          network_mode: "{{ mariadb_network }}"
+          restart_policy: unless-stopped
+          cpu_shares: "{{ mariadb_cpu_shares }}"
+          memory: "{{ mariadb_memory_limit }}"
+          memory_swap: "{{ mariadb_memory_swap }}"
+          env:
+            MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "true"
+      when: "mariadb_new_cluster == false"
+
+    - name: Wait for new cluster to start (max 2 minutes)
+      shell: "docker run --rm {{ artifacts.dockers.mariadb }} mysql -h {{ mariadb_listen_address }} -P {{ mariadb_listen_port }} -N -e \"show status like 'wsrep_cluster_size'\" | awk '{print $2}' " 
+      register: result
+      until: result.stdout >= '1'
+      retries: 12
+      delay: 10
+      # when: "galera_cluster is defined and galera_bootstrap and new_cluster_file.stat.exists == False"
+      when: "galera_cluster is defined and galera_bootstrap"
+
+
+    - name: Postintall script
+      shell: |
+        docker exec -i "{{inventory_hostname}}_maria_{{ node_name }}" mysql -h {{ mariadb_listen_address }} -P {{ mariadb_listen_port }} -uroot < "{{ mariadb_conf_dir }}/postinstall.sql"
+      register: postinstall_error
+      failed_when: "'using password: YES' in postinstall_error.stderr"

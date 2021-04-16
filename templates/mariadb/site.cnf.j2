@@ -1,0 +1,84 @@
+[mysqld]
+############## NEW CONFIG #######################
+ performance_schema_digests_size = 200
+ performance_schema_events_statements_history_long_size = 1000000
+#skip-log-bin
+ user            = mysql
+ pid-file        = /var/lib/mysql/datadir/mysql.pid
+ socket          = /var/lib/mysql/datadir/mysql.sock
+ port            = 3306
+ datadir         = /var/lib/mysql/datadir
+ tmpdir          = /var/lib/mysql/tmp
+ skip-external-locking
+# slow_query_log = 1
+# slow_query_log_file = /var/lib/mysql/datadir/slow-queries.log
+ expire_logs_days = 2
+# wait_timeout = 1728000 #20days
+ character-set-server=utf8
+ collation-server=utf8_unicode_ci
+ init_connect='set character set utf8; set names utf8'
+ sql-mode="NO_ENGINE_SUBSTITUTION"
+
+######################################################
+ server-id               = {{ server_id }} # UNIQUE FOR EACH NODE
+###### BELOW  FOR Async DC - DC replication ##########
+# log_slave_updates = ON
+###### ABOVE FOR Async DC-DC replication #############
+ max_binlog_size         = 20M
+ binlog_format           = ROW
+ expire_logs_days        = 5
+ bind-address            = {{ mariadb_listen_address }}
+ binlog_format           = ROW
+ relay_log               = /var/lib/mysql/innodb/binlog/relay.log
+ relay_log_index         = /var/lib/mysql/innodb/binlog/relay.index
+ log_error               = /var/lib/mysql/datadir/mariadb.err
+######################################################
+
+ # * InnoDB
+ #
+  default-storage-engine=InnoDB
+  innodb_file_per_table=1
+  innodb_flush_log_at_trx_commit=2
+  query_cache_size=0
+  query_cache_type=0
+  ## innodb_file_format=barracuda
+  innodb_strict_mode=1
+  ## innodb_data_file_path=ibdata1:256M:autoextend
+  innodb_log_buffer_size = 12M
+  innodb_doublewrite = 1
+  innodb_data_home_dir= /var/lib/mysql/innodb
+  innodb_log_group_home_dir= /var/lib/mysql/innodblog
+  innodb_flush_method = O_DIRECT
+  ## innodb_log_file_size = 25G
+  ## innodb_log_file_size = 10G
+  innodb_log_files_in_group = 4
+  ## innodb_buffer_pool_size  = 340G
+  innodb_buffer_pool_instances = 64
+  ## innodb_buffer_pool_instances = 20
+  ## innodb_buffer_pool_instances = 4
+  innodb_read_io_threads = 10
+  innodb_write_io_threads = 18
+  innodb_io_capacity = 8000
+  innodb_max_dirty_pages_pct = 25
+  innodb_open_files = 1000
+  innodb_old_blocks_time = 10
+  innodb_write_io_threads = 18
+  innodb_io_capacity = 8000
+  innodb_max_dirty_pages_pct = 25
+  innodb_open_files = 1000
+  innodb_old_blocks_time = 10
+  innodb_thread_concurrency  = 32
+  thread_handling=pool-of-threads
+ #
+ # * Fine Tuning (Myisam)
+ #
+ key_buffer_size         = 64M
+ max_allowed_packet      = 512M
+ thread_stack            = 256K
+ thread_cache_size       = 256
+ max_connections         = 5000
+ table_open_cache        = 3900
+ table_definition_cache  = 1300
+ tmp_table_size          = 32M
+ max_heap_table_size     = 32M
+

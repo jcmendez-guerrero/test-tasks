@@ -1,0 +1,8 @@
+port {{ redis_sentinel_port }}
+bind {{ redis_bind_address }}
+{% if redis_requirepass is defined %}
+requirepass {{ redis_requirepass }}
+sentinel auth-pass {{ redis_sentinel_group_name }} {{ redis_requirepass }}
+{% endif %}
+logfile ""
+

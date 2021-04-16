@@ -1,0 +1,32 @@
+---
+- name: Ensure firewalld is started
+  systemd:
+    daemon_reload: yes
+    name: firewalld
+    enabled: yes
+    state: started
+
+- name: Apply firewalld service configuration file
+  template:
+    src: "templates/firewalld/firewalld_service.j2"
+    dest: "/etc/firewalld/services/{{ item.name }}.xml"
+  with_items: "{{ firewalld_services }}"
+  register: firewall_services
+  when: firewalld_services is defined
+
+- name: Reload firewalld
+  command: "firewall-cmd --reload"
+  args:
+    warn: off
+  when: firewall_services.changed
+
+- name: Enable firewall rules for service
+  firewalld:
+    immediate: yes
+    permanent: yes
+    service: "{{ item.name }}"
+    zone: "{{ item.zone | default('public') }}"
+    state: enabled
+  with_items: "{{ firewalld_services }}"
+  when: firewalld_services is defined
+

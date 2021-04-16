@@ -1,0 +1,16 @@
+[galera]
+{% if galera_cluster is defined %}
+wsrep_on=ON
+wsrep_cluster_name={{ galera_cluster_name }}
+wsrep_cluster_address=gcomm://{{ galera_nodes | join(',') }}
+wsrep_node_address={{ mariadb_listen_address }}
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
+################### MORE GALERA CONFIG ################
+wsrep_node_name= {{ node_name }}
+wsrep_sst_method=rsync
+wsrep_sst_auth = mysql:
+default_storage_engine=InnoDB
+# Optional setting #
+#wsrep_slave_threads=20
+#wsrep_sst_method=mariabackup
+{% endif %}

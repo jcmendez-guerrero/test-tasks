@@ -1,0 +1,23 @@
+redis_bind_address: "{{ ansible_default_ipv4['address'] }}"
+
+redis_cpu_shares: "{{ (cpu_shares * 0.75)|int|abs }}"
+redis_memory_limit: "{{ (memory_limit * 0.75)|int|abs }}m"
+redis_memory_swap: "{{ (memory_limit * 0.75)|int|abs }}m"
+redis_sentinel_cpu_shares: "{{ (cpu_shares * 0.25)|int|abs }}"
+redis_sentinel_memory_limit: "{{ (memory_limit * 0.25)|int|abs }}m"
+redis_sentinel_memory_swap: "{{ (memory_limit * 0.25)|int|abs }}m"
+
+mariadb_listen_address: "{{ ansible_default_ipv4['address'] }}"
+mariadb_mysql_cmd: "mysql {{ mariadb_mysql_user }} {{ mariadb_mysql_pwd }}"
+mariadb_mysql_user: "{% if mariadb_user is defined %}-u {{ mariadb_user }}{% endif %}"
+mariadb_mysql_pwd: "{% if mariadb_pwd is defined %}--password={{ mariadb_pwd }}{% endif %}"
+mariadb_cpu_shares: "{{ (cpu_shares)|int|abs }}"
+mariadb_memory_limit: "{{ (memory_limit)|int|abs }}m"
+mariadb_memory_swap: "{{ (memory_limit*1.25)|int|abs }}m"
+
+
+rabbitmq_listen_address: "{{ ansible_default_ipv4['address'] }}"
+
+rabbitmq_cpu_shares: "{{ (cpu_shares)|int|abs }}"
+rabbitmq_memory_limit: "{{ (memory_limit)|int|abs }}m"
+rabbitmq_memory_swap: "{{ (memory_limit*1.25)|int|abs }}m"

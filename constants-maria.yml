@@ -1,0 +1,15 @@
+---
+firewalld_services:
+  - name: "mariadb"
+    zone: "{{ mariadb_fw_zone }}"
+    ports:
+      - port: "{{ mariadb_listen_port }}"
+        protocol: tcp
+      - port: "{{ mariadb_replication_port }}"
+        protocol: tcp
+      - port: "{{ mariadb_replication_port }}"
+        protocol: udp
+      - port: "{{ mariadb_ist_port }}"
+        protocol: tcp
+      - port: "{{ mariadb_sst_port }}"
+        protocol: tcp

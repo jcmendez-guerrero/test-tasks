@@ -1,0 +1,162 @@
+---
+- name: Install Redis
+  hosts: redis
+  become: yes
+  vars_files:
+    - artifacts.yml
+    - constants.yml
+  
+
+  handlers:
+    - name: restart redis
+      docker_container:
+        name: "{{inventory_hostname}}_redis_{{ redis_sentinel_group_name }}"
+        state: started
+        restart: True
+
+  tasks:
+    - name: "Create the Redis user group"
+      group:
+        name: redis
+        gid: 64999
+        state: present
+
+    - name: "Create the Redis user"
+      user:
+        name: redis
+        uid: 64999
+        group: redis
+        state: present
+
+    - name: "Create directories for Redis"
+      file:
+        path: "{{ item }}"
+        state: "directory"
+        group: redis
+        owner: redis
+        mode: 0755
+        recurse: yes
+      with_items:
+        - "{{ redis_conf_dir }}"
+        - "{{ redis_data_dir }}"
+        - "{{ redis_log_dir }}"
+
+    - name: "Create directories for Redis Sentinel"
+      file:
+        path: "{{ item }}"
+        state: "directory"
+        group: redis
+        owner: redis
+        recurse: yes
+      with_items:
+        - "{{ redis_sentinel_conf_dir }}"
+        - "{{ redis_sentinel_log_dir }}"
+      when: "install_sentinel == true"
+
+    - name: "Copy sentinel.conf to host (sentinel)"
+      template:
+        group: redis
+        owner: redis
+        src: "templates/redis-sentinel/sentinel.conf.j2"
+        dest: "{{ redis_sentinel_conf_dir }}/sentinel.conf"
+      when: "install_sentinel == true"
+
+    - name: "Copy replica.conf to host (master)"
+      template:
+        group: redis
+        owner: redis
+        src: "templates/redis/replica.conf.j2"
+        dest: "{{ redis_conf_dir }}/replica.conf"
+
+    - name: insert entries into replica.conf
+      blockinfile:
+        dest: "{{ redis_conf_dir }}/replica.conf"
+        block:
+          slaveof {{ redis_master_ip }} {{ redis_listen_port }}
+        insertbefore: "^min-slaves-to-write"
+      when: "redis_is_master == false"
+
+    - name: Add Sentinel configuration
+      ignore_errors: yes
+      blockinfile:
+        dest: "{{ redis_sentinel_conf_dir }}/sentinel.conf"
+        marker: ""
+        insertbefore: logfile
+        block: |
+          sentinel monitor {{ redis_sentinel_group_name}} {{ redis_master_ip }} {{ redis_listen_port }} {{ redis_sentinel_quorum }}
+          sentinel down-after-milliseconds {{ redis_sentinel_group_name }} 5000
+          sentinel failover-timeout {{ redis_sentinel_group_name }} 60000
+
+    - name: "Change permissions for sentinel dirs"
+      file:
+        path: "{{ item }}"
+        mode: 0755
+        group: redis
+        owner: redis
+        recurse: yes
+      with_items:
+        - "{{ redis_sentinel_log_dir }}"
+        - "{{ redis_sentinel_conf_dir }}"
+
+    - name: Add firewall services
+      include_role:
+        name: add-firewall-services
+
+    - name: Add pip services
+      include_role:
+        name: pip-installer
+
+    - name: Install redis docker
+      docker_container:
+          name: "{{inventory_hostname}}_redis_{{ redis_sentinel_group_name }}"
+          user: "64999:64999"
+          state: started
+          log_driver: json-file
+          log_options:
+            max-size: 15m
+            max-file: "3"
+          image: "{{ artifacts.dockers.redis }}"
+          volumes:
+            - "{{ redis_conf_dir }}:/etc/redis/conf"
+            - "{{ redis_data_dir }}:/data"
+            - "{{ redis_log_dir }}:/var/log/redis"
+          network_mode: "{{ redis_network }}"
+          cpu_shares: "{{ redis_cpu_shares }}"
+          memory: "{{ redis_memory_limit }}"
+          memory_swap: "{{ redis_memory_swap }}"
+          # ports:
+          #   - "{{ redis_bind_address }}:{{ redis_listen_port }}:6379"
+          command: redis-server /etc/redis/conf/replica.conf
+
+    - name: Wait for Redis to start
+      wait_for: timeout=5
+      delegate_to: localhost
+
+    - name: Install redis-sentinel docker
+      docker_container:
+          name: "{{ redis_sentinel_container_name }}"
+          user: "64999:64999"
+          state: started
+          log_driver: json-file
+          log_options:
+            max-size: 15m
+            max-file: "3"
+          image: "{{ artifacts.dockers.redis }}"
+          volumes:
+            - "{{ redis_sentinel_conf_dir }}:/etc/redis/conf"
+            - "{{ redis_sentinel_log_dir }}:/var/log/redis"
+          network_mode: "{{ redis_network }}"
+          restart_policy: unless-stopped
+          cpu_shares: "{{ redis_sentinel_cpu_shares }}"
+          # memory: "{{ redis_sentinel_memory_limit }}"
+          # ports:
+          #   - "{{ redis_bind_address }}:{{ redis_sentinel_port }}:26379"
+          command: redis-server /etc/redis/conf/sentinel.conf --sentinel
+      when: "install_sentinel == true"
+
+    - name: Restart Sentinel
+      ignore_errors: yes
+      docker_container:
+        name: "{{ redis_sentinel_container_name }}"
+        restart: yes
+      when: "install_sentinel == false"

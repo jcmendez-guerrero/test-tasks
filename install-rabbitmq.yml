@@ -1,0 +1,106 @@
+---
+- name: Install Rabbitmq
+  hosts: rabbitmq
+  become: yes
+  vars_files:
+    - artifacts.yml
+    - constants-rabbit.yml
+
+  handlers:
+    - name: restart rabbitmq
+      docker_container:
+        name: "{{inventory_hostname}}_rmq"
+        state: started
+        restart: True
+
+  tasks:
+
+    - name: Add pip services
+      include_role:
+        name: pip-installer
+
+    - name: Create the rabbitmq user group
+      group:
+        name: rabbitmq
+        gid: 64997
+        state: present
+
+    - name: Create the rabbitmq user
+      user:
+        name: rabbitmq
+        uid: 64997
+        group: rabbitmq
+        state: present
+
+    - name: Create directories
+      file:
+        path: "{{ item }}"
+        state: "directory"
+        group: rabbitmq
+        owner: rabbitmq
+        mode: 0777
+        recurse: yes
+      with_items:
+        - "{{ rabbitmq_conf_dir }}"
+        - "{{ rabbitmq_data_dir }}"
+        - "{{ rabbitmq_cert_dir }}"
+
+    - name: Copy configuration file
+      template:
+        src: "templates/rabbitmq/rabbitmq.conf.j2"
+        dest: "{{ rabbitmq_conf_dir }}/rabbitmq.conf"
+        group: rabbitmq
+        owner: rabbitmq
+        mode: 0644
+
+    - name: Copy configuration file
+      template:
+        src: "templates/rabbitmq/advanced.conf.j2"
+        dest: "{{ rabbitmq_conf_dir }}/advanced.config"
+        group: rabbitmq
+        owner: rabbitmq
+        mode: 0644
+
+    - name: Add firewall services
+      include_role:
+        name: add-firewall-services
+
+    - name: Install rabbitmq docker
+      docker_container:
+          name: "{{inventory_hostname}}_rmq"
+          state: started
+          log_driver: json-file
+          log_options:
+            max-size: 15m
+            max-file: "3"
+          image: "{{ artifacts.dockers.rabbitmq }}"
+          volumes:
+            - "{{ rabbitmq_conf_dir }}:/etc/rabbitmq"
+            - "{{ rabbitmq_data_dir }}:/var/lib/rabbitmq"
+            - "{{ rabbitmq_cert_dir }}:/etc/rabbitmq/certs"
+          network_mode: "{{ rabbitmq_network }}"
+          restart_policy: unless-stopped
+          cpu_shares: "{{ rabbitmq_cpu_shares }}"
+          memory: "{{ rabbitmq_memory_limit }}"
+          memory_swap: "{{ rabbitmq_memory_swap }}"
+          env:
+            RABBITMQ_VM_MEMORY_HIGH_WATERMARK: "0.8"
+            RABBITMQ_ERLANG_COOKIE: "{{ rabbitmq_erlang_cookie }}"
+            RABBITMQ_DEFAULT_USER: "{{ rabbitmq_admin_user }}"
+            RABBITMQ_DEFAULT_PASS: "{{ rabbitmq_admin_password }}"
+
+    - name: Enable plugins for single
+      command: docker exec -i {{inventory_hostname}}_rmq rabbitmq-plugins --offline enable rabbitmq_management rabbitmq_stomp
+      register: result
+      until: result.rc == 0
+      retries: 6
+      delay: 10
+      when: "rabbitmq_cluster == false"
+
+    - name: Enable plugins for a cluster install
+      command: docker exec -i {{inventory_hostname}}_rmq rabbitmq-plugins --offline enable  rabbitmq_management rabbitmq_stomp
+      register: result
+      until: result.rc == 0
+      retries: 6
+      delay: 10
+      when: "rabbitmq_cluster == true"

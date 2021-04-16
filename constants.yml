@@ -1,0 +1,16 @@
+---
+firewalld_services_1:
+  - name: "redis"
+    zone: "{{ redis_fw_zone }}"
+    ports:
+      - port: "{{ redis_listen_port }}"
+        protocol: tcp
+      - port: "{{ redis_sentinel_port }}"
+        protocol: tcp
+firewalld_services_2:
+  - name: "redis"
+    zone: "{{ redis_fw_zone }}"
+    ports:
+      - port: "{{ redis_listen_port }}"
+        protocol: tcp
+firewalld_services: "{% if install_sentinel %}{{firewalld_services_1}}{% else %}{{firewalld_services_2}}{%endif%}"

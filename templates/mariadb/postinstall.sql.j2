@@ -1,0 +1,7 @@
+# Global release manager local and remote user with hashed password
+SET GLOBAL strict_password_validation = OFF;
+# Secure root with hashed password
+USE mysql;
+ALTER USER root@localhost IDENTIFIED BY PASSWORD '*{{ hash_root_password }}';
+FLUSH PRIVILEGES;
+SET GLOBAL strict_password_validation = ON;

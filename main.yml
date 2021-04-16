@@ -1,0 +1,10 @@
+---
+
+- include: install-redis.yml
+  tags: installRedis
+
+- include: install-rabbitmq.yml
+  tags: installRabbitMQ
+
+- include: install-mariadb.yml
+  tags: installMariadb

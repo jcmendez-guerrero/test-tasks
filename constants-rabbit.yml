@@ -1,0 +1,17 @@
+---
+firewalld_services:
+  - name: "rabbitmq"
+    zone: "{{ rabbitmq_fw_zone }}"
+    ports:
+      - port: "{{ rabbitmq_listen_port }}"
+        protocol: tcp
+      - port: "{{ rabbitmq_management_port }}"
+        protocol: tcp
+      - port: "{{ rabbitmq_stomp_port }}"
+        protocol: tcp
+      - port: 4369
+        protocol: tcp
+      - port: 25672
+        protocol: tcp
+      - port: 5671
+        protocol: tcp

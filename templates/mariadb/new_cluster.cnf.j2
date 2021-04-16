@@ -1,0 +1,4 @@
+[mysqld]
+{% if mariadb_new_cluster is sameas true %}
+wsrep_new_cluster
+{% endif -%}

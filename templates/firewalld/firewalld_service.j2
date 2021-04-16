@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>{{ item.name }}</short>
+  {% if item.description is defined %}
+  <description>{{ item.description }}</description>
+  {% endif %}
+  {% for entry in item.ports %}
+  <port protocol="{{ entry.protocol }}" port="{{ entry.port }}"/>
+  {% endfor %}
+</service>

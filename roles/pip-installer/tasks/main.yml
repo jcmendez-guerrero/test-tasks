@@ -1,0 +1,25 @@
+---
+- name: Install RPMs
+  include_role:
+    name: yum-installer
+
+- name: Check if PIPs are installed
+  shell: "pip freeze | grep {{ item.value.name }}=={{ item.value.version }}"
+  register: pip_is_installed
+  failed_when: no
+  changed_when: no
+  with_dict: "{{ artifacts.pip }}"
+
+- set_fact:
+    pips_are_installed: "{{ pip_is_installed.results | map(attribute='rc') | map('int') | sum(start=0) }}"
+
+- name: Install PIP packages
+  pip:
+    name: "{{ item.value.name }}"
+  with_dict: "{{ artifacts.pip }}"
+  when: pips_are_installed != "0"
+
+- name: Remove old docker-py
+  pip:
+    name: docker-py
+    state: absent

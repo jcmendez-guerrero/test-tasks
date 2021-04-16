@@ -1,0 +1,24 @@
+port {{ redis_listen_port }}
+  
+min-slaves-to-write {{ redis_min_slaves_to_write }}
+min-slaves-max-lag {{ redis_min_slaves_max_lag }}
+slave-priority {{ redis_slave_priority }}
+
+{% if redis_requirepass is defined %}
+requirepass {{ redis_requirepass }}
+masterauth {{ redis_requirepass }}
+{% endif %}
+{% if redis_timeout is defined %}
+timeout {{ redis_timeout }}
+{% endif %}
+
+
+bind {{ redis_bind_address }}
+  
+dir "/data"
+save 900 1
+save 300 10
+save 60 10000
+
+# When logfile location is not defined, log will be written to stdout.   
+logfile ""

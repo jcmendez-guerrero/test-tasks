@@ -1,0 +1,102 @@
+all:
+  children:
+    redis:
+      hosts:  
+        ESBCNAASPROD001:
+          redis_is_master: true
+          redis_bind_address: 192.168.129.100
+          redis_slave_priority: 1
+
+        ESBCNAASPROD002:
+          redis_is_master: false
+          redis_bind_address: 192.168.129.101
+          redis_slave_priority: 10
+
+        ESBCNAASPROD003:
+          redis_is_master: false
+          redis_bind_address: 192.168.129.102
+          redis_slave_priority: 10
+    mariadb:
+      hosts:
+        ESBCNAASPROD001:
+          mariadb_listen_address: 192.168.129.100
+          server_id: 1
+          node_name: mariadb-1
+          mariadb_new_cluster: true
+          galera_bootstrap: true
+        ESBCNAASPROD002:
+          mariadb_listen_address: 192.168.129.101
+          server_id: 2
+          node_name: mariadb-2
+          mariadb_new_cluster: false
+          galera_bootstrap: true
+        ESBCNAASPROD003:
+          mariadb_listen_address: 192.168.129.102
+          server_id: 3
+          node_name: mariadb-3
+          mariadb_new_cluster: false
+          galera_bootstrap: true          
+    rabbitmq:
+      hosts:
+        ESBCNAASPROD001:
+          rabbitmq_listen_address: 192.168.129.100
+        ESBCNAASPROD002:
+          rabbitmq_listen_address: 192.168.129.101
+        ESBCNAASPROD003:
+          rabbitmq_listen_address: 192.168.129.102
+
+  vars:
+    redis_listen_port: 6379
+    redis_network: host
+    redis_master_ip: 192.168.129.100
+    install_sentinel: true
+    redis_sentinel_group_name: bcn
+    redis_conf_dir: /etc/selfinstall/redis_bcn/conf
+    redis_log_dir: /var/selfinstall/redis_bcn/logs
+    redis_data_dir: /var/selfinstall/redis_bcn/data
+    memory_limit: 256
+    cpu_shares: 1024
+    redis_min_slaves_to_write: 1
+    redis_min_slaves_max_lag: 10
+    redis_sentinel_port: 26379
+    redis_sentinel_conf_dir: /etc/selfinstall/redis_sentinel/conf
+    redis_sentinel_dir: /var/selfinstall/redis_sentinel/data
+    redis_sentinel_log_dir: /var/selfinstall/redis_sentinel/logs
+    redis_sentinel_quorum: 2
+    redis_sentinel_container_name: redis-sentinel
+    redis_timeout: 500
+    redis_fw_zone: public
+    mariadb_replication_port: 4567
+    mariadb_listen_port: 3306
+    mariadb_ist_port: 4568
+    mariadb_sst_port: 4444
+    mariadb_network: host
+    mariadb_fw_zone: public
+    mariadb_conf_dir: /etc/selfinstall/mariadb/conf
+    mariadb_data_dir: /var/selfinstall/mariadb/data
+    mariadb_tmp_dir: /var/selfinstall/mariadb/tmp
+    innodb_dir: /var/selfinstall/mariadb/innodb
+    binlog_dir: /var/selfinstall/mariadb/innodb/binlog
+    innodblog_dir: /var/selfinstall/mariadb/innodblog
+    # mariadb_user: maria-user
+    # mariadb_pwd: mariapass
+    hash_root_password: 84949DEEB42C91D1F71A52064D91F415D15FDE18
+    galera_cluster: true
+    galera_cluster_name: ESBCNCLUSTER
+    galera_nodes:
+    - 192.168.129.100
+    - 192.168.129.101
+    - 192.168.129.102
+    rabbitmq_listen_port: 5672
+    rabbitmq_management_port: 15672
+    rabbitmq_stomp_port: 61613
+    rabbitmq_network: host
+    rabbitmq_fw_zone: public
+    rabbitmq_conf_dir: /etc/selfinstall/rabbitmq/conf
+    rabbitmq_data_dir: /var/selfinstall/rabbitmq/data
+    rabbitmq_cert_dir: /var/selfinstall/rabbitmq/certs
+    rabbitmq_tls: false
+    rabbitmq_erlang_cookie: ERLANGCOOKIEFORCLUSTERING
+    rabbitmq_admin_user: admin
+    rabbitmq_admin_password: admin
+    rabbitmq_cluster: true

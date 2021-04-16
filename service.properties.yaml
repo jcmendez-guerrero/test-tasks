@@ -1,0 +1,241 @@
+properties:
+
+  redis_cpu_shares:
+    description: CPU shares (relative weight).
+    type: number
+    default: 4096
+
+  redis_memory_limit:
+    description: Memory limit in megabytes.
+    type: number
+    default: 4096
+
+  redis_master_ip:
+    description: IP address of Redis master node
+    type: string
+    required: true
+
+  redis_requirepass:
+    description: Enable password auth by setting a password.
+    type: string
+
+  redis_timeout:
+    description: If the client is idle for more than the specified number of seconds, the client connection will be closed.
+    type: number
+
+  redis_bind_address:
+    description: The address this Redis instance should bind to. Defaults to default ipv4 address.
+    type: string
+
+  redis_listen_port:
+    description: The port this Redis instance should be listening on.
+    type: number
+    default: 6379
+
+  redis_fw_zone:
+    description: The firewall zone this Redis instance should be connected to.
+    type: string
+    default: public
+
+  redis_network:
+    description: Connect the container to a network
+    type: string
+    default: host
+
+  redis_conf_dir:
+    description: The config directory.
+    type: string
+    default: /etc/qpackage/redis/conf
+
+  redis_data_dir:
+    description: The data directory.
+    type: string
+    default: /var/qpackage/redis/data
+
+  redis_log_dir:
+    description: The directory where to store logs.
+    type: string
+    default: /var/qpackage/redis/logs
+
+  redis_is_master:
+    description: is this Redis instance master
+    type: boolean
+    default: true
+
+  redis_slave_priority:
+    description: Slave priority. Slaves with a lower priority number are preferred by Sentinel. If set to 0, the slave is never promoted to master.
+    type: number
+    default: 10
+
+  redis_min_slaves_to_write:
+    description: Redis master accepts write queries only if at least defined amount of slaves are currently connected to the master.
+    type: number
+    default: 1
+
+  redis_min_slaves_max_lag:
+    description: The lag in seconds, that must be <= the specified value, is calculated from the last ping received from the slave
+    type: number
+    default: 10
+
+  redis_install_sentinel:
+    description: Defines if Sentinel will be installed
+    type: boolean
+    default: true
+
+  redis_sentinel_service_name:
+    description: The name of the Redis Sentinel service in Consul
+    type: string
+    default: redis_sentinel
+
+  redis_sentinel_port:
+    description: Redis Sentinel port
+    type: number
+    default: 26379
+
+  redis_sentinel_conf_dir:
+    description: Redis Sentinel configuration directory
+    type: string
+    default: /etc/qpackage/redis_sentinel/conf
+
+  redis_sentinel_log_dir:
+    description: Sentinel log directory. Logs are written to stdout by default.
+    type: string
+    default: /var/qpackage/redis_sentinel/logs
+
+  redis_redis_sentinel_dir:
+    description: Redis Sentinel directory
+    type: string
+    default: /etc/qpackage/redis_sentinel
+
+  redis_sentinel_quorum:
+    description: Quorum for Redis Sentinel. Even number 2, 4, ..
+    type: number
+    default: 2
+
+  redis_sentinel_group_name:
+    description: Redis group name for Sentinel
+    type: string
+    default: mapping
+
+  redis_sentinel_container_name:
+    description: Redis Sentinel container name
+    type: string
+    default: redis_sentinel
+
+  mariadb_bind_address:
+    description: The address this Mariadb instance should bind to. Defaults to default ipv4 address of the install_host.
+    type: string
+
+  mariadb_listen_port:
+    description: The port this Mariadb instance should be listening on.
+    type: number
+    default: 3306
+
+  mariadb_replication_port:
+    description: The port this Mariadb instance should be listening on for Galera Cluster replication traffic.
+    type: number
+    default: 4567
+
+  mariadb_ist_port:
+    description: The port this Mariadb instance should be listening on for Incremental State Transfer.
+    type: number
+    default: 4568
+
+  mariadb_sst_port:
+    description: The port this Mariadb instance should be listening on for State Snapshot Transfer.
+    type: number
+    default: 4444
+
+  mariadb_fw_zone:
+    description: The firewall zone this Mariadb instance should be connected to.
+    type: string
+    default: public
+
+  mariadb_network:
+    description: Connect the container to a network
+    type: string
+    default: host
+
+  mariadb_conf_dir:
+    description: The config directory.
+    type: string
+    default: /etc/qpackage/mariadb/conf
+
+  mariadb_data_dir:
+    description: The data directory.
+    type: string
+    default: /var/qpackage/mariadb/data
+
+  mariadb_tmp_dir:
+    description: The temp directory.
+    type: string
+    default: /var/qpackage/mariadb/tmp
+
+  mariadb_innodb_dir:
+    description: The innodb directory.
+    type: string
+    default: /var/qpackage/mariadb/innodb
+
+  mariadb_binlog_dir:
+    description: The binlog directory.
+    type: string
+    default: /var/qpackage/mariadb/innodb/binlog
+
+  mariadb_innodblog_dir:
+    description: The innodb log and binlog directory.
+    type: string
+    default: /var/qpackage/mariadb/innodblog
+
+  mariadb_backup_dir:
+    description: The backup directory.
+    type: string
+    default: /var/qpackage/mariadb/backup
+
+  mariadb_server_id:
+     description: Server id, unique for each node
+     type: number
+     default: 1
+
+  mariadb_node_name:
+     type: string
+     default: 'webdb1'
+
+  mariadb_new_cluster:
+     description: This needs to be enabled on the first host. Rest can have this disabled/undefined.
+     type: boolean
+     default: false
+
+  mariadb_hash_root_password:
+     description: Define the password for each node, so you must to set the same in all the galera nodes. The string is a hash, create it with the right version
+     type: string
+     required: true
+
+  mariadb_mariadb_user:
+    description: User used to run postinstall. This is commonly root but it can be changed depending on previous installations
+    type: string
+    default: root
+
+  mariadb_mariadb_password:
+    description: Password for the user to run postinstall. This depends on what user is being used to modify default users
+    type: string
+    required: false
+
+  mariadb_cluster:
+    description: Defines the galera cluster information. A cluster will only be created if this information is available.
+    type: galera_cluster_def
+    required: false
+
+  galera_cluster_name:
+    description: The name of the cluster. Nodes cannot connect to clusters with a different name, so needs to be identical on all nodes in the same cluster.
+    type: string
+    required: true
+  galera_bootstrap:
+    description: Indicates if a new cluster should be created when this instance is started the first time.
+    type: boolean
+    default: false
+  galera_nodes:
+    description: The addresses of cluster nodes to connect to when starting up (ip:port)
+    type: array
+    value_type: 
+      type: string
+    default: []

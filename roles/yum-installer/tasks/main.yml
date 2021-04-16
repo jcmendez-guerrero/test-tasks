@@ -1,0 +1,34 @@
+---
+- name: Check if RPMs are installed
+  shell: "yum list installed {{ item.value.name }}"
+  args:
+    warn: no
+  register: rpm_is_installed
+  failed_when: no
+  changed_when: no
+  with_dict: "{{ artifacts.rpm }}"
+  when: not (item.value.download_only is defined and item.value.download_only)
+
+- set_fact:
+    rpms_are_installed: "{{ rpm_is_installed.results | selectattr('rc', 'defined') | map(attribute='rc') | map('int') | sum(start=0) }}"
+
+- name: yum clean
+  command: yum clean all
+  ignore_errors: yes
+  args:
+    warn: no
+
+- name: Install RPMs
+  yum:
+    name: "{{ item.value.name }}"
+    state: present
+    disable_gpg_check: yes
+  with_dict: "{{ artifacts.rpm }}"
+  when: rpms_are_installed != "0" and not (item.value.download_only is defined and item.value.download_only)
+
+- name: yum clean
+  command: yum clean all
+  ignore_errors: yes
+  args:
+    warn: no
+
